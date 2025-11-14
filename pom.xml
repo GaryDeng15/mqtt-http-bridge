@@ -67,10 +67,20 @@
             <artifactId>spring-boot-devtools</artifactId>
         </dependency>
 
+        <!--Swagger-->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.0.4</version>
+        </dependency>
+
+        <!--MQTT-->
+        <!-- MQTT  spring-integration-mqtt  包含了 org.eclipse.paho.client.mqttv3  -->
+        <!-- https://mvnrepository.com/artifact/org.springframework.integration/spring-integration-mqtt -->
+        <dependency>
+            <groupId>org.springframework.integration</groupId>
+            <artifactId>spring-integration-mqtt</artifactId>
+            <version>5.5.14</version>
         </dependency>
     </dependencies>
 
