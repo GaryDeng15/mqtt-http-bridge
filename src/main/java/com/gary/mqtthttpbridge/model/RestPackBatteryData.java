@@ -15,58 +15,58 @@ import lombok.NoArgsConstructor;
 public class RestPackBatteryData {
 
     @JsonProperty("battery1")
-    @Schema(name = "battery1", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery1;
+    @Schema(name = "battery1", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery1;
 
     @JsonProperty("battery2")
-    @Schema(name = "battery2", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery2;
+    @Schema(name = "battery2", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery2;
 
     @JsonProperty("battery3")
-    @Schema(name = "battery3", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery3;
+    @Schema(name = "battery3", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery3;
 
     @JsonProperty("battery4")
-    @Schema(name = "battery4", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery4;
+    @Schema(name = "battery4", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery4;
 
     @JsonProperty("battery5")
-    @Schema(name = "battery5", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery5;
+    @Schema(name = "battery5", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery5;
 
     @JsonProperty("battery6")
-    @Schema(name = "battery6", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery6;
+    @Schema(name = "battery6", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery6;
 
     @JsonProperty("battery7")
-    @Schema(name = "battery7", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery7;
+    @Schema(name = "battery7", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery7;
 
     @JsonProperty("battery8")
-    @Schema(name = "battery8", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery8;
+    @Schema(name = "battery8", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery8;
 
     @JsonProperty("battery9")
-    @Schema(name = "battery9", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery9;
+    @Schema(name = "battery9", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery9;
 
     @JsonProperty("battery10")
-    @Schema(name = "battery10", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery10;
+    @Schema(name = "battery10", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery10;
 
     @JsonProperty("battery11")
-    @Schema(name = "battery11", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery11;
+    @Schema(name = "battery11", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery11;
 
     @JsonProperty("battery12")
-    @Schema(name = "battery12", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery12;
+    @Schema(name = "battery12", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery12;
 
     @JsonProperty("battery13")
-    @Schema(name = "battery13", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery13;
+    @Schema(name = "battery13", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery13;
 
     @JsonProperty("battery14")
-    @Schema(name = "battery14", description = "RestBattery", format = "RestBattery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
-    private RestBattery battery14;
+    @Schema(name = "battery14", description = "Battery", format = "Battery", example = "{\"current\": 12.5,\"voltage\": 43.565,\"temperature\": 833.31}")
+    private Battery battery14;
 }

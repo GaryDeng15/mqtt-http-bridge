@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gary.mqtthttpbridge.mapper.BatteryOverallMapper">
+  <resultMap id="BaseResultMap" type="com.gary.mqtthttpbridge.model.BatteryOverall">
+    <result column="totalCurrent" jdbcType="FLOAT" property="totalcurrent" />
+    <result column="totalVoltage" jdbcType="FLOAT" property="totalvoltage" />
+    <result column="maxBatteryVoltage" jdbcType="FLOAT" property="maxbatteryvoltage" />
+    <result column="maxVoltageBatteryPackNumber" jdbcType="CHAR" property="maxvoltagebatterypacknumber" />
+    <result column="maxVoltageBatteryDOT" jdbcType="CHAR" property="maxvoltagebatterydot" />
+    <result column="minBatteryVoltage" jdbcType="FLOAT" property="minbatteryvoltage" />
+    <result column="minVoltageBatteryPackNumber" jdbcType="CHAR" property="minvoltagebatterypacknumber" />
+    <result column="minVoltageBatteryDOT" jdbcType="CHAR" property="minvoltagebatterydot" />
+    <result column="maxBatteryTemperature" jdbcType="FLOAT" property="maxbatterytemperature" />
+    <result column="maxBatteryTempPackPumber" jdbcType="CHAR" property="maxbatterytemppackpumber" />
+    <result column="maxBatteryTempBatteryDOT" jdbcType="CHAR" property="maxbatterytempbatterydot" />
+    <result column="minBatteryTemperature" jdbcType="FLOAT" property="minbatterytemperature" />
+    <result column="minTempBatteryPackNumber" jdbcType="CHAR" property="mintempbatterypacknumber" />
+    <result column="minTempBatteryPointNumber" jdbcType="CHAR" property="mintempbatterypointnumber" />
+    <result column="cumulativeCharge" jdbcType="FLOAT" property="cumulativecharge" />
+    <result column="cumulativeDischarge" jdbcType="FLOAT" property="cumulativedischarge" />
+    <result column="dischargeCapacity" jdbcType="FLOAT" property="dischargecapacity" />
+    <result column="dischargeQuantityToday" jdbcType="FLOAT" property="dischargequantitytoday" />
+    <result column="chargeToday" jdbcType="FLOAT" property="chargetoday" />
+    <result column="currentStatus" jdbcType="INTEGER" property="currentstatus" />
+    <result column="realTimeCPOfBatteryStack" jdbcType="FLOAT" property="realtimecpofbatterystack" />
+    <result column="realTimeDCPOfBatteryStack" jdbcType="FLOAT" property="realtimedcpofbatterystack" />
+    <result column="time" jdbcType="TIMESTAMP" property="time" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    totalCurrent, totalVoltage, maxBatteryVoltage,
+      maxVoltageBatteryPackNumber, maxVoltageBatteryDOT,
+      minBatteryVoltage, minVoltageBatteryPackNumber,
+      minVoltageBatteryDOT, maxBatteryTemperature,
+      maxBatteryTempPackPumber, maxBatteryTempBatteryDOT,
+      minBatteryTemperature, minTempBatteryPackNumber,
+      minTempBatteryPointNumber, cumulativeCharge,
+      cumulativeDischarge, dischargeCapacity, dischargeQuantityToday,
+      chargeToday, currentStatus, realTimeCPOfBatteryStack,
+      realTimeDCPOfBatteryStack, `time`
+  </sql>
+  <insert id="insert" parameterType="com.gary.mqtthttpbridge.model.BatteryOverall">
+    insert into t_battery_overall (totalCurrent, totalVoltage, maxBatteryVoltage, 
+      maxVoltageBatteryPackNumber, maxVoltageBatteryDOT, 
+      minBatteryVoltage, minVoltageBatteryPackNumber, 
+      minVoltageBatteryDOT, maxBatteryTemperature, 
+      maxBatteryTempPackPumber, maxBatteryTempBatteryDOT, 
+      minBatteryTemperature, minTempBatteryPackNumber, 
+      minTempBatteryPointNumber, cumulativeCharge, 
+      cumulativeDischarge, dischargeCapacity, dischargeQuantityToday, 
+      chargeToday, currentStatus, realTimeCPOfBatteryStack, 
+      realTimeDCPOfBatteryStack, `time`)
+    values (#{totalcurrent,jdbcType=FLOAT}, #{totalvoltage,jdbcType=FLOAT}, #{maxbatteryvoltage,jdbcType=FLOAT}, 
+      #{maxvoltagebatterypacknumber,jdbcType=CHAR}, #{maxvoltagebatterydot,jdbcType=CHAR}, 
+      #{minbatteryvoltage,jdbcType=FLOAT}, #{minvoltagebatterypacknumber,jdbcType=CHAR}, 
+      #{minvoltagebatterydot,jdbcType=CHAR}, #{maxbatterytemperature,jdbcType=FLOAT}, 
+      #{maxbatterytemppackpumber,jdbcType=CHAR}, #{maxbatterytempbatterydot,jdbcType=CHAR}, 
+      #{minbatterytemperature,jdbcType=FLOAT}, #{mintempbatterypacknumber,jdbcType=CHAR}, 
+      #{mintempbatterypointnumber,jdbcType=CHAR}, #{cumulativecharge,jdbcType=FLOAT}, 
+      #{cumulativedischarge,jdbcType=FLOAT}, #{dischargecapacity,jdbcType=FLOAT}, #{dischargequantitytoday,jdbcType=FLOAT}, 
+      #{chargetoday,jdbcType=FLOAT}, #{currentstatus,jdbcType=INTEGER}, #{realtimecpofbatterystack,jdbcType=FLOAT}, 
+      #{realtimedcpofbatterystack,jdbcType=FLOAT}, NOW())
+  </insert>
+  <insert id="insertSelective" parameterType="com.gary.mqtthttpbridge.model.BatteryOverall">
+    insert into t_battery_overall
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="totalcurrent != null">
+        totalCurrent,
+      </if>
+      <if test="totalvoltage != null">
+        totalVoltage,
+      </if>
+      <if test="maxbatteryvoltage != null">
+        maxBatteryVoltage,
+      </if>
+      <if test="maxvoltagebatterypacknumber != null">
+        maxVoltageBatteryPackNumber,
+      </if>
+      <if test="maxvoltagebatterydot != null">
+        maxVoltageBatteryDOT,
+      </if>
+      <if test="minbatteryvoltage != null">
+        minBatteryVoltage,
+      </if>
+      <if test="minvoltagebatterypacknumber != null">
+        minVoltageBatteryPackNumber,
+      </if>
+      <if test="minvoltagebatterydot != null">
+        minVoltageBatteryDOT,
+      </if>
+      <if test="maxbatterytemperature != null">
+        maxBatteryTemperature,
+      </if>
+      <if test="maxbatterytemppackpumber != null">
+        maxBatteryTempPackPumber,
+      </if>
+      <if test="maxbatterytempbatterydot != null">
+        maxBatteryTempBatteryDOT,
+      </if>
+      <if test="minbatterytemperature != null">
+        minBatteryTemperature,
+      </if>
+      <if test="mintempbatterypacknumber != null">
+        minTempBatteryPackNumber,
+      </if>
+      <if test="mintempbatterypointnumber != null">
+        minTempBatteryPointNumber,
+      </if>
+      <if test="cumulativecharge != null">
+        cumulativeCharge,
+      </if>
+      <if test="cumulativedischarge != null">
+        cumulativeDischarge,
+      </if>
+      <if test="dischargecapacity != null">
+        dischargeCapacity,
+      </if>
+      <if test="dischargequantitytoday != null">
+        dischargeQuantityToday,
+      </if>
+      <if test="chargetoday != null">
+        chargeToday,
+      </if>
+      <if test="currentstatus != null">
+        currentStatus,
+      </if>
+      <if test="realtimecpofbatterystack != null">
+        realTimeCPOfBatteryStack,
+      </if>
+      <if test="realtimedcpofbatterystack != null">
+        realTimeDCPOfBatteryStack,
+      </if>
+      <if test="time != null">
+        `time`,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="totalcurrent != null">
+        #{totalcurrent,jdbcType=FLOAT},
+      </if>
+      <if test="totalvoltage != null">
+        #{totalvoltage,jdbcType=FLOAT},
+      </if>
+      <if test="maxbatteryvoltage != null">
+        #{maxbatteryvoltage,jdbcType=FLOAT},
+      </if>
+      <if test="maxvoltagebatterypacknumber != null">
+        #{maxvoltagebatterypacknumber,jdbcType=CHAR},
+      </if>
+      <if test="maxvoltagebatterydot != null">
+        #{maxvoltagebatterydot,jdbcType=CHAR},
+      </if>
+      <if test="minbatteryvoltage != null">
+        #{minbatteryvoltage,jdbcType=FLOAT},
+      </if>
+      <if test="minvoltagebatterypacknumber != null">
+        #{minvoltagebatterypacknumber,jdbcType=CHAR},
+      </if>
+      <if test="minvoltagebatterydot != null">
+        #{minvoltagebatterydot,jdbcType=CHAR},
+      </if>
+      <if test="maxbatterytemperature != null">
+        #{maxbatterytemperature,jdbcType=FLOAT},
+      </if>
+      <if test="maxbatterytemppackpumber != null">
+        #{maxbatterytemppackpumber,jdbcType=CHAR},
+      </if>
+      <if test="maxbatterytempbatterydot != null">
+        #{maxbatterytempbatterydot,jdbcType=CHAR},
+      </if>
+      <if test="minbatterytemperature != null">
+        #{minbatterytemperature,jdbcType=FLOAT},
+      </if>
+      <if test="mintempbatterypacknumber != null">
+        #{mintempbatterypacknumber,jdbcType=CHAR},
+      </if>
+      <if test="mintempbatterypointnumber != null">
+        #{mintempbatterypointnumber,jdbcType=CHAR},
+      </if>
+      <if test="cumulativecharge != null">
+        #{cumulativecharge,jdbcType=FLOAT},
+      </if>
+      <if test="cumulativedischarge != null">
+        #{cumulativedischarge,jdbcType=FLOAT},
+      </if>
+      <if test="dischargecapacity != null">
+        #{dischargecapacity,jdbcType=FLOAT},
+      </if>
+      <if test="dischargequantitytoday != null">
+        #{dischargequantitytoday,jdbcType=FLOAT},
+      </if>
+      <if test="chargetoday != null">
+        #{chargetoday,jdbcType=FLOAT},
+      </if>
+      <if test="currentstatus != null">
+        #{currentstatus,jdbcType=INTEGER},
+      </if>
+      <if test="realtimecpofbatterystack != null">
+        #{realtimecpofbatterystack,jdbcType=FLOAT},
+      </if>
+      <if test="realtimedcpofbatterystack != null">
+        #{realtimedcpofbatterystack,jdbcType=FLOAT},
+      </if>
+      <if test="time != null">
+        #{time,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+    <select id="selectOneByTime" resultType="com.gary.mqtthttpbridge.model.BatteryOverall">
+      select
+      <include refid="Base_Column_List" />
+      from t_battery_overall
+      order by TIME desc
+      limit 1
+    </select>
+</mapper>

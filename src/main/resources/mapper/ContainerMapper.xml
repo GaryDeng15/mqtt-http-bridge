@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gary.mqtthttpbridge.mapper.ContainerMapper">
+  <resultMap id="BaseResultMap" type="com.gary.mqtthttpbridge.model.Container">
+    <result column="ACOperatingStatus" jdbcType="INTEGER" property="acoperatingstatus" />
+    <result column="PowerStatus" jdbcType="INTEGER" property="powerstatus" />
+    <result column="YLOperatingStatus" jdbcType="INTEGER" property="yloperatingstatus" />
+    <result column="ACFault" jdbcType="INTEGER" property="acfault" />
+    <result column="PowerFault" jdbcType="INTEGER" property="powerfault" />
+    <result column="YLOperatingFault" jdbcType="INTEGER" property="yloperatingfault" />
+    <result column="Time" jdbcType="TIMESTAMP" property="time" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    ACOperatingStatus, PowerStatus, YLOperatingStatus, ACFault, PowerFault,
+    YLOperatingFault, Time
+  </sql>
+  <insert id="insert" parameterType="com.gary.mqtthttpbridge.model.Container">
+    insert into t_container (ACOperatingStatus, PowerStatus, YLOperatingStatus, 
+      ACFault, PowerFault, YLOperatingFault, 
+      `Time`)
+    values (#{acoperatingstatus,jdbcType=INTEGER}, #{powerstatus,jdbcType=INTEGER}, #{yloperatingstatus,jdbcType=INTEGER}, 
+      #{acfault,jdbcType=INTEGER}, #{powerfault,jdbcType=INTEGER}, #{yloperatingfault,jdbcType=INTEGER}, 
+      NOW())
+  </insert>
+  <insert id="insertSelective" parameterType="com.gary.mqtthttpbridge.model.Container">
+    insert into t_container
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="acoperatingstatus != null">
+        ACOperatingStatus,
+      </if>
+      <if test="powerstatus != null">
+        PowerStatus,
+      </if>
+      <if test="yloperatingstatus != null">
+        YLOperatingStatus,
+      </if>
+      <if test="acfault != null">
+        ACFault,
+      </if>
+      <if test="powerfault != null">
+        PowerFault,
+      </if>
+      <if test="yloperatingfault != null">
+        YLOperatingFault,
+      </if>
+      <if test="time != null">
+        `Time`,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="acoperatingstatus != null">
+        #{acoperatingstatus,jdbcType=INTEGER},
+      </if>
+      <if test="powerstatus != null">
+        #{powerstatus,jdbcType=INTEGER},
+      </if>
+      <if test="yloperatingstatus != null">
+        #{yloperatingstatus,jdbcType=INTEGER},
+      </if>
+      <if test="acfault != null">
+        #{acfault,jdbcType=INTEGER},
+      </if>
+      <if test="powerfault != null">
+        #{powerfault,jdbcType=INTEGER},
+      </if>
+      <if test="yloperatingfault != null">
+        #{yloperatingfault,jdbcType=INTEGER},
+      </if>
+      <if test="time != null">
+        #{time,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <select id="selectLastContainerByTime" resultType="com.gary.mqtthttpbridge.model.Container">
+    select
+    <include refid="Base_Column_List" />
+    from t_container
+    order by TIME desc
+    limit 1
+  </select>
+</mapper>

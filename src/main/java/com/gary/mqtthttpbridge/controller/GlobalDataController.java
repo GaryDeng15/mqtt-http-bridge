@@ -1,12 +1,17 @@
 package com.gary.mqtthttpbridge.controller;
 
 import com.gary.mqtthttpbridge.model.*;
+import com.gary.mqtthttpbridge.service.BatteryOverallService;
+import com.gary.mqtthttpbridge.service.BatteryService;
+import com.gary.mqtthttpbridge.service.ContainerService;
+import com.gary.mqtthttpbridge.service.PackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -19,6 +24,18 @@ import java.util.Map;
 @RestController
 @Tag(name = "数据孪生数据接口", description = "提供数据孪生所需数据")
 public class GlobalDataController {
+    @Resource
+    private ContainerService containerService;
+
+    @Resource
+    private BatteryService batteryService;
+
+    @Resource
+    private PackService packService;
+
+    @Resource
+    private BatteryOverallService batteryOverallService;
+
     //----------------------[/getContainer]----------------------//
     @GetMapping("/getContainer")
     @Operation(
@@ -45,17 +62,11 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getContainer(){
-        RestContainer restContainer = new RestContainer(
-                1,
-                0,
-                0,
-                1,
-                1,
-                0);
+        /*RestContainer restContainer = new RestContainer(1,0,0,1,1,0);*/
 
         // 2. 用 Map 封装，key 为 "root"，value 为实体类对象
         Map<String, Object> result = new HashMap<>();
-        result.put("Container", restContainer);
+        result.put("Container", containerService.getLastContainer());
         return result;
     }
 
@@ -86,33 +97,11 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getBatteryOverall(){
-        RestBatteryOverall restBatteryOverall = new RestBatteryOverall(
-                12.5,
-                4.56,
-                210.2,
-                "pack1",
-                "battery-1-1",
-                8.74,
-                "pack3",
-                "battery-2-12",
-                32.64,
-                "pack2",
-                "battery-3-1",
-                43.4,
-                "pack7",
-                "battery-3-1",
-                4321.42,
-                2321.3,
-                1482.7,
-                74332.1,
-                114332.4,
-                3,
-                42.4,
-                62.4
-        );
+        /*RestBatteryOverall restBatteryOverall = new RestBatteryOverall(12.5,4.56,210.2,"pack1","battery-1-1",8.74,"pack3","battery-2-12",32.64,"pack2","battery-3-1",43.4,"pack7","battery-3-1",4321.42,2321.3,1482.7,74332.1,114332.4,3,42.4,62.4);*/
 
         Map<String, Object> result = new HashMap<>();
-        result.put("BatteryOverall", restBatteryOverall);
+
+        result.put("BatteryOverall", batteryOverallService.getLastBatteryOverall());
         return result;
     }
 
@@ -225,7 +214,7 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPackAll(){
-        RestPack tempRestPack = new RestPack(
+        /*Pack tempRestPack = new RestPack(
                 13.5,
                 51.34,
                 21.444,
@@ -245,9 +234,11 @@ public class GlobalDataController {
                 tempRestPack,
                 tempRestPack,
                 tempRestPack
-        );
+        );*/
+        RestPackAll restPackAll = new RestPackAll();
 
         Map<String, Object> result = new HashMap<>();
+        restPackAll = packService.getPackAll();
         result.put("PackAll", restPackAll);
         return result;
     }
@@ -351,17 +342,18 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack1BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
+        /*RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
 
         RestPackBatteryData pack1BatteryData = new RestPackBatteryData(
                 tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
                 tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
                 tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
-
+                tempRestBatter, tempRestBatter);*/
+        RestPackBatteryData restPackBatteryData = new RestPackBatteryData();
+        restPackBatteryData = batteryService.getBatteryByPack(1);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack1BatteryData", pack1BatteryData);
+        result.put("Pack1BatteryData", restPackBatteryData);
         return result;
     };
 
@@ -464,17 +456,18 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack2BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
+/*        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
 
         RestPackBatteryData Pack2BatteryData = new RestPackBatteryData(
                 tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
                 tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
                 tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
+                tempRestBatter, tempRestBatter);*/
 
 
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack2BatteryData", Pack2BatteryData);
+        RestPackBatteryData Pack2BatteryData = new RestPackBatteryData();
+        result.put("Pack2BatteryData", batteryService.getBatteryByPack(2));
         return result;
     };
 
@@ -577,17 +570,10 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack3BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
-
-        RestPackBatteryData Pack3BatteryData = new RestPackBatteryData(
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
-
 
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack3BatteryData", Pack3BatteryData);
+
+        result.put("Pack3BatteryData", batteryService.getBatteryByPack(3));
         return result;
     };
 
@@ -690,17 +676,10 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack4BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
-
-        RestPackBatteryData Pack4BatteryData = new RestPackBatteryData(
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
-
 
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack4BatteryData", Pack4BatteryData);
+
+        result.put("Pack4BatteryData", batteryService.getBatteryByPack(4));
         return result;
     };
 
@@ -803,17 +782,9 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack5BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
-
-        RestPackBatteryData Pack6BatteryData = new RestPackBatteryData(
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
-
 
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack5BatteryData", Pack6BatteryData);
+        result.put("Pack5BatteryData", batteryService.getBatteryByPack(5));
         return result;
     };
 
@@ -916,17 +887,10 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack6BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
-
-        RestPackBatteryData Pack6BatteryData = new RestPackBatteryData(
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
-
 
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack6BatteryData", Pack6BatteryData);
+
+        result.put("Pack6BatteryData", batteryService.getBatteryByPack(6));
         return result;
     };
 
@@ -1029,17 +993,10 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack7BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
-
-        RestPackBatteryData Pack7BatteryData = new RestPackBatteryData(
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
-
 
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack7BatteryData", Pack7BatteryData);
+        RestPackBatteryData Pack7BatteryData = new RestPackBatteryData();
+        result.put("Pack7BatteryData", batteryService.getBatteryByPack(7));
         return result;
     };
 
@@ -1142,17 +1099,8 @@ public class GlobalDataController {
             )
     )
     public Map<String, Object> getPack8BatteryData(){
-        RestBattery tempRestBatter = new RestBattery(12.5, 43.565, 833.31);
-
-        RestPackBatteryData Pack8BatteryData = new RestPackBatteryData(
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter, tempRestBatter, tempRestBatter,
-                tempRestBatter, tempRestBatter);
-
-
         Map<String, Object> result = new HashMap<>();
-        result.put("Pack8BatteryData", Pack8BatteryData);
+        result.put("Pack8BatteryData", batteryService.getBatteryByPack(8));
         return result;
     };
 }

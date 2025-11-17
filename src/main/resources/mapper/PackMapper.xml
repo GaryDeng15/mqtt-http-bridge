@@ -2,130 +2,122 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.gary.mqtthttpbridge.mapper.PackMapper">
   <resultMap id="BaseResultMap" type="com.gary.mqtthttpbridge.model.Pack">
-    <id column="id" jdbcType="INTEGER" property="id" />
-    <result column="electricTension" jdbcType="FLOAT" property="Electrictension" />
-    <result column="electricity" jdbcType="FLOAT" property="electricity" />
+    <result column="packId" jdbcType="CHAR" property="packId" />
+    <result column="current" jdbcType="FLOAT" property="current" />
+    <result column="voltage" jdbcType="FLOAT" property="voltage" />
     <result column="insulationResistance" jdbcType="FLOAT" property="insulationresistance" />
-    <result column="meanCellResistance" jdbcType="FLOAT" property="meancellresistance" />
-    <result column="meanCellTemperature" jdbcType="INTEGER" property="meancelltemperature" />
-    <result column="dischargeCapacity" jdbcType="FLOAT" property="dischargecapacity" />
+    <result column="averageMonomerResistance" jdbcType="FLOAT" property="averagemonomerresistance" />
+    <result column="averageMonomerTemperature" jdbcType="FLOAT" property="averagemonomertemperature" />
     <result column="terminalTemperature" jdbcType="FLOAT" property="terminaltemperature" />
+    <!--btterypackrealTimechargingpower-->
+    <result column="realTimeChargingPower" jdbcType="FLOAT" property="realTimeChargingPower" />
+    <!--batteryPackRealtimeDischargingPower-->
+    <result column="realTimeDischargingPower" jdbcType="FLOAT" property="realTimedischargingpower" />
+    <result column="time" jdbcType="TIMESTAMP" property="time" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, electricTension, electricity, insulationResistance, meanCellResistance, meanCellTemperature, 
-    dischargeCapacity, terminalTemperature
+    packId, current, voltage, insulationResistance, averageMonomerResistance, averageMonomerTemperature, terminalTemperature, realTimeChargingPower, realTimeDischargingPower, time
   </sql>
-  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
-    select 
-    <include refid="Base_Column_List" />
-    from t_pack
-    where id = #{id,jdbcType=INTEGER}
-  </select>
-  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
-    delete from t_pack
-    where id = #{id,jdbcType=INTEGER}
-  </delete>
-  <insert id="insert" keyColumn="id" keyProperty="id" parameterType="com.gary.mqtthttpbridge.model.Pack" useGeneratedKeys="true">
-    insert into t_pack (electricTension, electricity, insulationResistance, 
-      meanCellResistance, meanCellTemperature, 
-      dischargeCapacity, terminalTemperature)
-    values (#{Electrictension,jdbcType=FLOAT}, #{electricity,jdbcType=FLOAT}, #{insulationresistance,jdbcType=FLOAT},
-      #{meancellresistance,jdbcType=FLOAT}, #{meancelltemperature,jdbcType=INTEGER}, 
-      #{dischargecapacity,jdbcType=FLOAT}, #{terminaltemperature,jdbcType=FLOAT})
+  <insert id="insert" parameterType="com.gary.mqtthttpbridge.model.Pack">
+    insert into t_pack (packId, `current`, voltage,
+      insulationResistance, averageMonomerResistance, 
+      averageMonomerTemperature, terminalTemperature, 
+      realTimeChargingPower, realTimeDischargingPower,
+      `time`)
+    values (#{packId,jdbcType=CHAR}, #{current,jdbcType=FLOAT}, #{voltage,jdbcType=FLOAT}, 
+      #{insulationresistance,jdbcType=FLOAT}, #{averagemonomerresistance,jdbcType=FLOAT}, 
+      #{averagemonomertemperature,jdbcType=FLOAT}, #{terminaltemperature,jdbcType=FLOAT}, 
+      #{realTimeChargingPower,jdbcType=FLOAT}, #{realTimedischargingpower,jdbcType=FLOAT},
+      NOW())
   </insert>
-  <insert id="insertSelective" keyColumn="id" keyProperty="id" parameterType="com.gary.mqtthttpbridge.model.Pack" useGeneratedKeys="true">
+  <insert id="insertSelective" parameterType="com.gary.mqtthttpbridge.model.Pack">
     insert into t_pack
     <trim prefix="(" suffix=")" suffixOverrides=",">
-      <if test="electrictension != null">
-        ElectricTension,
+      <if test="packId != null">
+        packId,
       </if>
-      <if test="electricity != null">
-        electricity,
+      <if test="current != null">
+        `current`,
+      </if>
+      <if test="voltage != null">
+        voltage,
       </if>
       <if test="insulationresistance != null">
         insulationResistance,
       </if>
-      <if test="meancellresistance != null">
-        meanCellResistance,
+      <if test="averagemonomerresistance != null">
+        averageMonomerResistance,
       </if>
-      <if test="meancelltemperature != null">
-        meanCellTemperature,
-      </if>
-      <if test="dischargecapacity != null">
-        dischargeCapacity,
+      <if test="averagemonomertemperature != null">
+        averageMonomerTemperature,
       </if>
       <if test="terminaltemperature != null">
         terminalTemperature,
       </if>
+      <if test="realTimeChargingPower != null">
+        realTimeChargingPower,
+      </if>
+      <if test="realTimeDischargingPower != null">
+        realTimeDischargingPower,
+      </if>
+      <if test="time != null">
+        `time`,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
-      <if test="electrictension != null">
-        #{Electrictension,jdbcType=FLOAT},
+      <if test="packId != null">
+        #{packId,jdbcType=CHAR},
       </if>
-      <if test="electricity != null">
-        #{electricity,jdbcType=FLOAT},
+      <if test="current != null">
+        #{current,jdbcType=FLOAT},
+      </if>
+      <if test="voltage != null">
+        #{voltage,jdbcType=FLOAT},
       </if>
       <if test="insulationresistance != null">
         #{insulationresistance,jdbcType=FLOAT},
       </if>
-      <if test="meancellresistance != null">
-        #{meancellresistance,jdbcType=FLOAT},
+      <if test="averagemonomerresistance != null">
+        #{averagemonomerresistance,jdbcType=FLOAT},
       </if>
-      <if test="meancelltemperature != null">
-        #{meancelltemperature,jdbcType=INTEGER},
-      </if>
-      <if test="dischargecapacity != null">
-        #{dischargecapacity,jdbcType=FLOAT},
+      <if test="averagemonomertemperature != null">
+        #{averagemonomertemperature,jdbcType=FLOAT},
       </if>
       <if test="terminaltemperature != null">
         #{terminaltemperature,jdbcType=FLOAT},
       </if>
+      <if test="realTimeChargingPower != null">
+        #{realTimeChargingPower,jdbcType=FLOAT},
+      </if>
+      <if test="realTimeDischargingPower != null">
+        #{realTimedischargingpower,jdbcType=FLOAT},
+      </if>
+      <if test="time != null">
+        #{time,jdbcType=TIMESTAMP},
+      </if>
     </trim>
   </insert>
-  <update id="updateByPrimaryKeySelective" parameterType="com.gary.mqtthttpbridge.model.Pack">
-    update t_pack
-    <set>
-      <if test="electrictension != null">
-        electricTension = #{Electrictension,jdbcType=FLOAT},
-      </if>
-      <if test="electricity != null">
-        electricity = #{electricity,jdbcType=FLOAT},
-      </if>
-      <if test="insulationresistance != null">
-        insulationResistance = #{insulationresistance,jdbcType=FLOAT},
-      </if>
-      <if test="meancellresistance != null">
-        meanCellResistance = #{meancellresistance,jdbcType=FLOAT},
-      </if>
-      <if test="meancelltemperature != null">
-        meanCellTemperature = #{meancelltemperature,jdbcType=INTEGER},
-      </if>
-      <if test="dischargecapacity != null">
-        dischargeCapacity = #{dischargecapacity,jdbcType=FLOAT},
-      </if>
-      <if test="terminaltemperature != null">
-        terminalTemperature = #{terminaltemperature,jdbcType=FLOAT},
-      </if>
-    </set>
-    where id = #{id,jdbcType=INTEGER}
-  </update>
-  <update id="updateByPrimaryKey" parameterType="com.gary.mqtthttpbridge.model.Pack">
-    update t_pack
-    set electricTension = #{Electrictension,jdbcType=FLOAT},
-      electricity = #{electricity,jdbcType=FLOAT},
-      insulationResistance = #{insulationresistance,jdbcType=FLOAT},
-      meanCellResistance = #{meancellresistance,jdbcType=FLOAT},
-      meanCellTemperature = #{meancelltemperature,jdbcType=INTEGER},
-      dischargeCapacity = #{dischargecapacity,jdbcType=FLOAT},
-      terminalTemperature = #{terminaltemperature,jdbcType=FLOAT}
-    where id = #{id,jdbcType=INTEGER}
-  </update>
-
-  <select id="selectLastPack" resultMap="BaseResultMap">
-    select
-    <include refid="Base_Column_List" />
+  <select id="selectOneByTime" resultType="com.gary.mqtthttpbridge.model.Pack">
+    select *
     from t_pack
-    order by id desc
+    order by TIME desc
     limit 1
   </select>
+    <select id="selectPackAll" resultType="com.gary.mqtthttpbridge.model.Pack">
+      SELECT
+      <include refid="Base_Column_List" />
+      FROM (
+             -- 子查询：对每个pack按time降序排序，标记序号
+             SELECT
+               *,
+               ROW_NUMBER() OVER (
+                 PARTITION BY packId
+                 ORDER BY time DESC
+                 ) AS rn  -- rn=1表示该pack中最新的记录
+             FROM t_pack
+             WHERE packId IN ('pack1', 'pack2', 'pack3', 'pack4',
+                               'pack5', 'pack6', 'pack7', 'pack8')  -- 限定8个pack
+           ) AS temp
+      WHERE rn = 1;  -- 只取每个pack中排序第一（最新）的记录
+    </select>
 </mapper>

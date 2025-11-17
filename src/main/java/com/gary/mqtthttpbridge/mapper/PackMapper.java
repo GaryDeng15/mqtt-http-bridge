@@ -1,23 +1,19 @@
 package com.gary.mqtthttpbridge.mapper;
 
+import com.gary.mqtthttpbridge.model.Battery;
+import com.gary.mqtthttpbridge.model.Container;
 import com.gary.mqtthttpbridge.model.Pack;
-import jakarta.annotation.Resource;
 import org.apache.ibatis.annotations.Mapper;
-import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Mapper
 public interface PackMapper {
-    int deleteByPrimaryKey(Integer id);
-
     int insert(Pack record);
 
     int insertSelective(Pack record);
 
-    Pack selectByPrimaryKey(Integer id);
+    Pack selectOneByTime();
 
-    int updateByPrimaryKeySelective(Pack record);
-
-    int updateByPrimaryKey(Pack record);
-
-    Pack selectLastPack();
+    List<Pack> selectPackAll();
 }
