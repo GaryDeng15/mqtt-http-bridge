@@ -40,11 +40,13 @@ public class MqttInboundConfiguration {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         MqttConnectOptions options = new MqttConnectOptions();
         options.setServerURIs(new String[]{mqttConfiguration.getUrl()});
-        options.setCleanSession(true);
+        options.setCleanSession(false);
         options.setUserName(mqttConfiguration.getUsername());
         options.setPassword(mqttConfiguration.getPassword().toCharArray());
-        options.setConnectionTimeout(100);
-        options.setKeepAliveInterval(200);
+        options.setConnectionTimeout(30);
+        options.setKeepAliveInterval(60);
+        options.setAutomaticReconnect(true);
+        options.setMaxReconnectDelay(10000);
         factory.setConnectionOptions(options);
         return factory;
     }

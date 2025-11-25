@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.alibaba.fastjson.JSONObject;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -73,10 +76,12 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
     @Override
     public void saveData(String payload) {
         parseJSON(payload);
-        //parseBatOverData();
-        parseBatteryData();
-        //parseContainerData();
-        //parsePackData();
+        if(dataArray.size() == 11){
+            parseBatOverData();
+            parseBatteryData();
+            parseContainerData();
+            parsePackData();
+        }
     }
 
     private void parsePackData() {
@@ -229,7 +234,7 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
 
     }
 
-    private void parseBatOverData() {
+    /*private void parseBatOverData() {
         BatteryOverall batteryOverall = new BatteryOverall();
 
         for (Object obj : dataArray) {
@@ -241,8 +246,8 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
                 batteryOverall.setTotalcurrent(tags.getDouble("RackCurrent"));
                 batteryOverall.setTotalvoltage(tags.getDouble("RackVoltage"));
                 batteryOverall.setMaxbatteryvoltage(tags.getDouble("RackMaxVoltage"));
-                // TODO 根据CellId设置PackNumber和Dot
-                //batteryOverall.setMaxbatteryvoltage(tags.getDouble("RackMaxVolCellId"));
+                //根据CellId设置PackNumber和Dot
+                //batteryOverall.setMaxvoltagebatterydot(tags.getDouble("RackMaxVolCellId"));
                 //batteryOverall.setMaxvoltagebatterypacknumber(tags.getString("RackMaxVolCellId"));
 
                 batteryOverall.setMinbatteryvoltage(tags.getDouble("RackMinVoltage"));
@@ -272,18 +277,225 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
             }
         }
 
-/*        batteryOverall.setMaxvoltagebatterypacknumber("pack1");
+*//*        batteryOverall.setMaxvoltagebatterypacknumber("pack1");
         batteryOverall.setMaxvoltagebatterydot("battery-1-3");
         batteryOverall.setMinvoltagebatterypacknumber("pack2");
         batteryOverall.setMinvoltagebatterydot("battery-2-4");
         batteryOverall.setMaxbatterytemppackpumber("pack3");
         batteryOverall.setMaxbatterytempbatterydot("battery-3-5");
         batteryOverall.setMintempbatterypacknumber("pack4");
-        batteryOverall.setMintempbatterypointnumber("battery-4-6");*/
+        batteryOverall.setMintempbatterypointnumber("battery-4-6");*//*
 
         if(batteryOverall.isNotAllNull()){
             saveBatOverData(batteryOverall);
         }
 
+    }*/
+
+
+
+    private void parseBatOverData() {
+        BatteryOverall batteryOverall = new BatteryOverall();
+        // 存储电芯电压数据：key=电芯编号(1-112), value=电压值
+        Map<Integer, Double> cellVoltageMap = new HashMap<>();
+        // 存储电芯温度数据：key=电芯编号(1-112), value=温度值
+        Map<Integer, Double> cellTemperatureMap = new HashMap<>();
+
+        for (Object obj : dataArray) {
+            JSONObject device = (JSONObject) obj;
+            String deviceNo = device.getString("no");
+            JSONObject tags = device.getJSONObject("tags");
+
+            // 解析BMS设备的整体数据
+            if ("BMS".equals(deviceNo)) {
+                batteryOverall.setTotalcurrent(tags.getDouble("RackCurrent"));
+                batteryOverall.setTotalvoltage(tags.getDouble("RackVoltage"));
+                batteryOverall.setMaxbatteryvoltage(tags.getDouble("RackMaxVoltage"));
+                batteryOverall.setMinbatteryvoltage(tags.getDouble("RackMinVoltage"));
+                batteryOverall.setMaxbatterytemperature(tags.getDouble("RackMaxTemp"));
+                batteryOverall.setMinbatterytemperature(tags.getDouble("RackMinTemp"));
+                batteryOverall.setCumulativecharge(tags.getDouble("AccuCharge"));
+                batteryOverall.setCumulativedischarge(tags.getDouble("AccuDischarge"));
+                batteryOverall.setDischargecapacity(tags.getDouble("AvailDischarge"));
+                batteryOverall.setDischargequantitytoday(tags.getDouble("SingleAccuDischarge"));
+                batteryOverall.setChargetoday(tags.getDouble("SingleAccuCharge"));
+                batteryOverall.setCurrentstatus(tags.getInteger("RackRunState"));
+            }
+
+            // 解析EMS设备的CPO数据
+            else if ("EMS".equals(deviceNo)) {
+                batteryOverall.setRealtimecpofbatterystack(tags.getDouble("chargeStartPower"));
+                batteryOverall.setRealtimedcpofbatterystack(tags.getDouble("dischargeThreshold"));
+            }
+
+            // 解析BMS_CELLS设备的112个电芯数据
+            else if ("BMS_CELLS".equals(deviceNo)) {
+                // 解析电压数据（ClusCeVol001 ~ ClusCeVol112）
+                for (int i = 1; i <= 112; i++) {
+                    String voltageKey = String.format("ClusCeVol%03d", i);
+                    if (tags.containsKey(voltageKey)) {
+                        double voltage = tags.getDoubleValue(voltageKey);
+                        cellVoltageMap.put(i, voltage);
+                    }
+                }
+
+                // 解析温度数据（ClusCeTemp001 ~ ClusCeTemp112）
+                for (int i = 1; i <= 112; i++) {
+                    String tempKey = String.format("ClusCeTemp%03d", i);
+                    if (tags.containsKey(tempKey)) {
+                        double temperature = tags.getDoubleValue(tempKey);
+                        cellTemperatureMap.put(i, temperature);
+                    }
+                }
+            }
+        }
+
+        // 处理电压数据：找出最高/最低电压对应的组号和点号
+        processVoltageData(cellVoltageMap, batteryOverall);
+        // 处理温度数据：找出最高/最低温度对应的组号和点号
+        processTemperatureData(cellTemperatureMap, batteryOverall);
+
+        // 保存数据（非空校验）
+        if (batteryOverall.isNotAllNull()) {
+            saveBatOverData(batteryOverall);
+        }
     }
+
+    /**
+     * 处理电压数据，设置最高/最低电压对应的组号和点号
+     * @param cellVoltageMap 电芯电压映射（key=电芯编号1-112，value=电压值）
+     * @param batteryOverall 电池整体数据对象
+     */
+    private void processVoltageData(Map<Integer, Double> cellVoltageMap, BatteryOverall batteryOverall) {
+        if (cellVoltageMap.isEmpty()) {
+            return;
+        }
+
+        int maxVoltageCellId = -1;
+        int minVoltageCellId = -1;
+        double maxVoltage = Double.MIN_VALUE;
+        double minVoltage = Double.MAX_VALUE;
+
+        // 遍历找出最高/最低电压对应的电芯编号
+        for (Map.Entry<Integer, Double> entry : cellVoltageMap.entrySet()) {
+            int cellId = entry.getKey();
+            double voltage = entry.getValue();
+
+            if (voltage > maxVoltage) {
+                maxVoltage = voltage;
+                maxVoltageCellId = cellId;
+            }
+
+            if (voltage < minVoltage) {
+                minVoltage = voltage;
+                minVoltageCellId = cellId;
+            }
+        }
+
+        // 设置最高电压的组号和点号
+        if (maxVoltageCellId != -1) {
+            CellPosition maxPos = calculateCellPosition(maxVoltageCellId);
+            batteryOverall.setMaxvoltagebatterypacknumber(maxPos.getPackNumber());
+            batteryOverall.setMaxvoltagebatterydot(maxPos.getDotId());
+        }
+
+        // 设置最低电压的组号和点号
+        if (minVoltageCellId != -1) {
+            CellPosition minPos = calculateCellPosition(minVoltageCellId);
+            batteryOverall.setMinvoltagebatterypacknumber(minPos.getPackNumber());
+            batteryOverall.setMinvoltagebatterydot(minPos.getDotId());
+        }
+    }
+
+    /**
+     * 处理温度数据，设置最高/最低温度对应的组号和点号
+     * @param cellTemperatureMap 电芯温度映射（key=电芯编号1-112，value=温度值）
+     * @param batteryOverall 电池整体数据对象
+     */
+    private void processTemperatureData(Map<Integer, Double> cellTemperatureMap, BatteryOverall batteryOverall) {
+        if (cellTemperatureMap.isEmpty()) {
+            return;
+        }
+
+        int maxTempCellId = -1;
+        int minTempCellId = -1;
+        double maxTemp = Double.MIN_VALUE;
+        double minTemp = Double.MAX_VALUE;
+
+        // 遍历找出最高/最低温度对应的电芯编号
+        for (Map.Entry<Integer, Double> entry : cellTemperatureMap.entrySet()) {
+            int cellId = entry.getKey();
+            double temp = entry.getValue();
+
+            if (temp > maxTemp) {
+                maxTemp = temp;
+                maxTempCellId = cellId;
+            }
+
+            if (temp < minTemp) {
+                minTemp = temp;
+                minTempCellId = cellId;
+            }
+        }
+
+        // 设置最高温度的组号和点号
+        if (maxTempCellId != -1) {
+            CellPosition maxPos = calculateCellPosition(maxTempCellId);
+            batteryOverall.setMaxbatterytemppackpumber(maxPos.getPackNumber());
+            batteryOverall.setMaxbatterytempbatterydot(maxPos.getDotId());
+        }
+
+        // 设置最低温度的组号和点号
+        if (minTempCellId != -1) {
+            CellPosition minPos = calculateCellPosition(minTempCellId);
+            batteryOverall.setMintempbatterypacknumber(minPos.getPackNumber());
+            batteryOverall.setMintempbatterypointnumber(minPos.getDotId());
+        }
+    }
+
+    /**
+     * 计算电芯的组号和点号
+     * 规则：14个电芯为一组，编号1-14→pack1，15-28→pack2，...，106-112→pack8
+     * 点号格式：battery-{组号}-{组内序号}
+     * @param cellId 电芯编号（1-112）
+     * @return 电芯位置信息（组号+点号）
+     */
+    private CellPosition calculateCellPosition(int cellId) {
+        if (cellId < 1 || cellId > 112) {
+            throw new IllegalArgumentException("电芯编号必须在1-112之间：" + cellId);
+        }
+
+        // 计算组号（向上取整：(cellId + 14 - 1) / 14）
+        int packNo = (cellId + 13) / 14;
+        // 计算组内序号（1-14）
+        int dotNoInPack = cellId - (packNo - 1) * 14;
+
+        // 组装返回结果
+        String packNumber = "pack" + packNo;
+        String dotId = String.format("battery-%d-%d", packNo, dotNoInPack);
+        return new CellPosition(packNumber, dotId);
+    }
+
+    /**
+     * 内部辅助类：存储电芯的组号和点号
+     */
+    private static class CellPosition {
+        private final String packNumber;
+        private final String dotId;
+
+        public CellPosition(String packNumber, String dotId) {
+            this.packNumber = packNumber;
+            this.dotId = dotId;
+        }
+
+        public String getPackNumber() {
+            return packNumber;
+        }
+
+        public String getDotId() {
+            return dotId;
+        }
+    }
+
+
 }
