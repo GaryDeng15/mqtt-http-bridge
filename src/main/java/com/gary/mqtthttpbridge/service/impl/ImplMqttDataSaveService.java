@@ -21,14 +21,23 @@ import java.util.List;
 import com.alibaba.fastjson.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
  */
 @Service
 public class ImplMqttDataSaveService implements MqttDataSaveService {
-    private JSONObject root;
-    private JSONArray dataArray;
+
+    // 线程池：核心线程数4，最大线程数4，避免过多线程竞争数据库连接
+    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
+
+    // 线程安全的共享变量（使用volatile确保可见性）
+    private volatile JSONObject root;
+    private volatile JSONArray dataArray;
 
     @Resource
     private BatteryOverallMapper batteryOverallMapper;
@@ -44,8 +53,10 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
 
     @Override
     public void parseJSON(String payload) {
-        root = JSON.parseObject(payload);
-        dataArray = root.getJSONArray("data");
+        synchronized (this){
+            root = JSON.parseObject(payload);
+            dataArray = root.getJSONArray("data");
+        }
         /*for (Object obj : dataArray) {
             JSONObject device = (JSONObject) obj;
             if ("BMS_CELLS".equals(device.getString("no"))) {
@@ -76,59 +87,158 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
     @Override
     public void saveData(String payload) {
         parseJSON(payload);
-        if(dataArray.size() == 11){
-            parseBatOverData();
-            parseBatteryData();
-            parseContainerData();
-            parsePackData();
+
+        /*parseBatOverData();     //BMS EMS BMS_CELLS
+        parseBatteryData();     //BMS BMS_CELLS
+        parseContainerData();   //AC EMS TMS
+        parsePackData();        //BMS EMS*/
+
+        try {
+            // 2. 提交四个任务到线程池并行执行
+            CompletableFuture<Void> batOverFuture = CompletableFuture.runAsync(this::parseBatOverData, executorService);
+            CompletableFuture<Void> batteryFuture = CompletableFuture.runAsync(this::parseBatteryData, executorService);
+            CompletableFuture<Void> containerFuture = CompletableFuture.runAsync(this::parseContainerData, executorService);
+            CompletableFuture<Void> packFuture = CompletableFuture.runAsync(this::parsePackData, executorService);
+
+            // 3. 等待所有任务完成（最多等待30秒，防止无限阻塞）
+            CompletableFuture.allOf(
+                    batOverFuture,
+                    batteryFuture,
+                    containerFuture,
+                    packFuture
+            ).get(30, TimeUnit.SECONDS);
+
+        } catch (Exception e) {
+            // 4. 异常处理：打印日志并重新抛出（根据业务需求调整）
+            e.printStackTrace();
+            throw new RuntimeException("MQTT数据保存失败", e);
+        }
+
+    }
+
+    /**
+     * 销毁时关闭线程池，释放资源
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if (!executorService.isShutdown()) {
+            executorService.shutdown();
+            // 等待60秒强制关闭
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
         }
     }
 
     private void parsePackData() {
-        Pack pack = new Pack();
-        for (Object obj : dataArray) {
+        // 局部变量拷贝共享数据，避免多线程并发修改问题
+        JSONArray localDataArray = dataArray;
+        if (localDataArray == null) return;
+
+        // 存储8个pack的电压（pack1~pack8）
+        double[] packVoltages = new double[8];
+
+        //Pack pack = new Pack();
+        Double aPhaseActivePower = 0.0, bPhaseActivePower = 0.0, cPhaseActivePower = 0.0;
+        Pack basePack = new Pack();
+        for (Object obj : localDataArray) {
             JSONObject device = (JSONObject) obj;
             JSONObject tags = device.getJSONObject("tags");
-            if ("BMS".equals(device.getString("no"))) {
-                pack.setVoltage(tags.getDouble("RackVoltage"));
-                pack.setCurrent(tags.getDouble("RackCurrent"));
-                pack.setInsulationresistance(tags.getDouble("RackInsulatVal"));
-                pack.setAveragemonomerresistance(tags.getDouble("RackInsulatVal"));
-                pack.setAveragemonomertemperature(tags.getDouble("RackAverageTemp"));
-                pack.setTerminaltemperature(tags.getDouble("ModuleTemp"));
-            }
-            if ("EMS".equals(device.getString("no"))) {
-                pack.setRealTimeChargingPower(tags.getDouble("chargeStartPower"));
-                pack.setRealTimedischargingpower(tags.getDouble("dischargeThreshold"));
-            }
-        }
 
-        if(pack.isNotAllNull()){
-            pack.setPackId("pack1");
-            savePackData(pack);
-            pack.setPackId("pack2");
-            savePackData(pack);
-            pack.setPackId("pack3");
-            savePackData(pack);
-            pack.setPackId("pack4");
-            savePackData(pack);
-            pack.setPackId("pack5");
-            savePackData(pack);
-            pack.setPackId("pack6");
-            savePackData(pack);
-            pack.setPackId("pack7");
-            savePackData(pack);
-            pack.setPackId("pack8");
-            savePackData(pack);
+            // 1. 解析BMS_CELLS：按14个电芯一组计算pack电压
+            if ("BMS_CELLS".equals(device.getString("no"))) {
+                // 循环处理112个电芯（ClusCeVol001~ClusCeVol112）
+                for (int i = 1; i <= 112; i++) {
+                    String volKey = String.format("ClusCeVol%03d", i);
+                    Double cellVoltage = tags.getDouble(volKey) / 1000;
+
+                    // 跳过空值（避免空指针）
+                    if (cellVoltage == null) continue;
+
+                    // 计算所属pack序号（0~7对应pack1~pack8）
+                    int packIndex = (i - 1) / 14; // 1-14→0，15-28→1，...，106-112→7
+                    // 累加当前电芯电压到对应pack
+                    packVoltages[packIndex] += cellVoltage;
+                }
+            }
+
+            else if ("BMS".equals(device.getString("no"))) {
+                //pack.setVoltage(tags.getDouble("RackVoltage"));
+                // 初始化pack基础数据（后续每个pack复用此基础数据）
+
+                basePack.setCurrent(tags.getDouble("RackCurrent"));
+                basePack.setInsulationresistance(tags.getDouble("RackInsulatVal"));
+                basePack.setAveragemonomerresistance(tags.getDouble("RackInsulatVal"));
+                basePack.setAveragemonomertemperature(tags.getDouble("RackAverageTemp"));
+                basePack.setTerminaltemperature(tags.getDouble("ModuleTemp"));
+            }
+
+            // TODO
+            /*else if ("FZ".equals(device.getString("no"))) {
+                aPhaseActivePower = tags.getDouble("AphaseActivePower");
+            }
+            else if ("FZ2".equals(device.getString("no"))) {
+                bPhaseActivePower = tags.getDouble("BphaseActivePower");
+            }
+            else if ("FZ3".equals(device.getString("no"))) {
+                cPhaseActivePower = tags.getDouble("CphaseActivePower");
+            }*/
+
+            else if ("PCS".equals(device.getString("no"))) {
+                aPhaseActivePower = tags.getDouble("AphaseActPower");
+                bPhaseActivePower = tags.getDouble("BphaseActPower");
+                cPhaseActivePower = tags.getDouble("CphaseActPower");
+            }
+
+
+        }
+        // 实时充电功率 = A相有功功率 + B相有功功率 + C相有功功率
+        basePack.setRealTimeChargingPower(-1 * (aPhaseActivePower + bPhaseActivePower + cPhaseActivePower));
+        // 实时放电功率 = -( A相有功功率 + B相有功功率 + C相有功功率 )
+        basePack.setRealTimedischargingpower(aPhaseActivePower + bPhaseActivePower + cPhaseActivePower);
+
+        // 4. 为每个pack设置专属电压和公共数据，然后保存
+        for (int i = 0; i < 8; i++) {
+            Pack pack = new Pack();
+
+            // 设置当前pack的专属电压（从BMS_CELLS分组计算得出）
+            pack.setVoltage(packVoltages[i]); // 新增：每组电芯总电压
+            //pack.(packVoltages[i] / 14); // 新增：组内电芯平均电压（可选）
+
+            // 设置公共数据（保留原有逻辑）
+            //pack.setVoltage(basePack.getVoltage()); // 整组总电压（原有逻辑）
+            pack.setCurrent(basePack.getCurrent());
+            pack.setInsulationresistance(basePack.getInsulationresistance());
+            pack.setAveragemonomerresistance(basePack.getAveragemonomerresistance());
+            pack.setAveragemonomertemperature(basePack.getAveragemonomertemperature());
+            pack.setTerminaltemperature(basePack.getTerminaltemperature());
+
+            // 功率相关（保留原有逻辑）
+            pack.setRealTimeChargingPower(basePack.getRealTimeChargingPower());
+            pack.setRealTimedischargingpower(basePack.getRealTimedischargingpower());
+
+            // 设置packId并保存（pack1~pack8）
+            pack.setPackId("pack" + (i + 1));
+
+            // 非空校验后保存（确保有有效数据才保存）
+            if (pack.isNotAllNull()) {
+                savePackData(pack);
+            }
         }
     }
 
     private void parseContainerData() {
+        // 局部变量拷贝共享数据，避免多线程并发修改问题
+        JSONArray localDataArray = dataArray;
+        if (localDataArray == null) return;
+
         Container container = new Container();
-        for (Object obj : dataArray) {
+        for (Object obj : localDataArray) {
             JSONObject device = (JSONObject) obj;
             JSONObject tags = device.getJSONObject("tags");
             if ("AC".equals(device.getString("no"))) {
+                System.out.println("%nAC%n");
                 container.setAcoperatingstatus(tags.getInteger("Read_1"));
                 Integer alarm1 = tags.getInteger("Alarm_1");
                 Integer alarm2 = tags.getInteger("Alarm_2");
@@ -148,7 +258,7 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
             }
 
             if ("EMS".equals(device.getString("no"))) {
-                System.out.println("EMS");
+                System.out.println("%nEMS%n");
                 // OnOff 0:关机;1:开机;
                 Integer onOff = tags.getInteger("OnOff");
                 switch (onOff){
@@ -169,6 +279,7 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
             }
 
             if ("TMS".equals(device.getString("no"))) {
+                System.out.println("%nTMS%n");
                 container.setYloperatingfault(tags.getInteger("Online")); //0:正常;1:异常;
                 container.setYloperatingstatus(tags.getInteger("Online")); //0:正常;1:异常;
             }
@@ -182,13 +293,18 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
     }
 
     private void parseBatteryData() {
+        // 局部变量拷贝共享数据，避免多线程并发修改问题
+        JSONArray localDataArray = dataArray;
+        if (localDataArray == null) return;
+
         List<Battery> batteryList = new ArrayList<>();
         Double totalCurrent = null; // 存储BMS中的总电流
 
         // 1. 先获取BMS中的总电流（RackCurrent）
-        for (Object obj : dataArray) {
+        for (Object obj : localDataArray) {
             JSONObject device = (JSONObject) obj;
             if ("BMS".equals(device.getString("no"))) {
+                System.out.println("%nBMS%n");
                 JSONObject tags = device.getJSONObject("tags");
                 totalCurrent = tags.getDouble("RackCurrent");
                 break; // 找到BMS后退出循环
@@ -196,7 +312,7 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
         }
 
         // 2. 解析BMS_CELLS的电压，生成112个电芯对象
-        for (Object obj : dataArray) {
+        for (Object obj : localDataArray) {
             JSONObject device = (JSONObject) obj;
             if ("BMS_CELLS".equals(device.getString("no"))) {
                 JSONObject tags = device.getJSONObject("tags");
@@ -295,13 +411,19 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
 
 
     private void parseBatOverData() {
+        // 局部变量拷贝共享数据，避免多线程并发修改问题
+        JSONArray localDataArray = dataArray;
+        if (localDataArray == null) return;
+
         BatteryOverall batteryOverall = new BatteryOverall();
         // 存储电芯电压数据：key=电芯编号(1-112), value=电压值
         Map<Integer, Double> cellVoltageMap = new HashMap<>();
         // 存储电芯温度数据：key=电芯编号(1-112), value=温度值
         Map<Integer, Double> cellTemperatureMap = new HashMap<>();
 
-        for (Object obj : dataArray) {
+        Double aPhaseActivePower = 0.0, bPhaseActivePower = 0.0, cPhaseActivePower = 0.0;
+
+        for (Object obj : localDataArray) {
             JSONObject device = (JSONObject) obj;
             String deviceNo = device.getString("no");
             JSONObject tags = device.getJSONObject("tags");
@@ -323,10 +445,23 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
             }
 
             // 解析EMS设备的CPO数据
-            else if ("EMS".equals(deviceNo)) {
-                batteryOverall.setRealtimecpofbatterystack(tags.getDouble("chargeStartPower"));
-                batteryOverall.setRealtimedcpofbatterystack(tags.getDouble("dischargeThreshold"));
+            else if ("PCS".equals(device.getString("no"))) {
+                aPhaseActivePower = tags.getDouble("AphaseActPower");
+                bPhaseActivePower = tags.getDouble("BphaseActPower");
+                cPhaseActivePower = tags.getDouble("CphaseActPower");
+
+                // 实时充电功率 = A相有功功率 + B相有功功率 + C相有功功率
+                // -1 * (aPhaseActivePower + bPhaseActivePower + cPhaseActivePower)
+                // 实时放电功率 = -( A相有功功率 + B相有功功率 + C相有功功率 )
+                // aPhaseActivePower + bPhaseActivePower + cPhaseActivePower
+                batteryOverall.setRealtimecpofbatterystack(-1 * (aPhaseActivePower + bPhaseActivePower + cPhaseActivePower));
+                batteryOverall.setRealtimedcpofbatterystack(aPhaseActivePower + bPhaseActivePower + cPhaseActivePower);
             }
+
+            // 实时充电功率 = A相有功功率 + B相有功功率 + C相有功功率
+            // -1 * (aPhaseActivePower + bPhaseActivePower + cPhaseActivePower)
+            // 实时放电功率 = -( A相有功功率 + B相有功功率 + C相有功功率 )
+            // aPhaseActivePower + bPhaseActivePower + cPhaseActivePower
 
             // 解析BMS_CELLS设备的112个电芯数据
             else if ("BMS_CELLS".equals(deviceNo)) {

@@ -18,6 +18,8 @@ import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannel
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import java.nio.charset.StandardCharsets;
 
@@ -67,6 +69,9 @@ public class MqttInboundConfiguration {
         return adapter;
     }
 
+    // 定义线程安全的时间格式化器（静态常量，全局复用）
+    private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Bean
     @ServiceActivator(inputChannel = "mqttInputChannel")
     public MessageHandler messageHandler() {
@@ -76,7 +81,8 @@ public class MqttInboundConfiguration {
             byte[] bytePayload = strPayload.getBytes(StandardCharsets.UTF_8);
             // ...处理byte数组
             String payload = new String((byte[]) bytePayload);
-            System.out.printf("收到消息 -> [主题:%s] [内容:%s]%n \n==================================================================", topic, payload);
+            String currentTime = LocalDateTime.now().format(dtf); // 获取当前时间并格式化
+            System.out.printf("[%s] 收到消息 -> [主题:%s] [内容:%s]%n \n==================================================================", currentTime, topic, payload);
 
             // TODO在这里添加业务处理逻辑
             mqttDataSaveService.saveData(payload);
