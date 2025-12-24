@@ -14,17 +14,20 @@ import com.gary.mqtthttpbridge.model.Pack;
 import com.gary.mqtthttpbridge.service.ContainerService;
 import com.gary.mqtthttpbridge.service.MqttDataSaveService;
 import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
+
 import com.alibaba.fastjson.JSONObject;
-import java.util.HashMap;
-import java.util.Map;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import static com.gary.mqtthttpbridge.commons.Constant.*;
 
 /**
  *
@@ -38,6 +41,10 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
     // 线程安全的共享变量（使用volatile确保可见性）
     private volatile JSONObject root;
     private volatile JSONArray dataArray;
+
+    // ========== 依赖注入 ==========
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Resource
     private BatteryOverallMapper batteryOverallMapper;
@@ -199,6 +206,8 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
         basePack.setRealTimedischargingpower(aPhaseActivePower + bPhaseActivePower + cPhaseActivePower);
 
         // 4. 为每个pack设置专属电压和公共数据，然后保存
+        Date currentDate = new Date();
+
         for (int i = 0; i < 8; i++) {
             Pack pack = new Pack();
 
@@ -217,12 +226,26 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
             // 功率相关（保留原有逻辑）
             pack.setRealTimeChargingPower(basePack.getRealTimeChargingPower());
             pack.setRealTimedischargingpower(basePack.getRealTimedischargingpower());
-
+            String packId = "pack" + (i + 1);
             // 设置packId并保存（pack1~pack8）
-            pack.setPackId("pack" + (i + 1));
+            pack.setPackId(packId);
+
+            pack.setTime(currentDate);
+
+
+
 
             // 非空校验后保存（确保有有效数据才保存）
             if (pack.isNotAllNull()) {
+                // 固定Key：前缀 + packId（如mqtt:pack:latest:pack1）
+                String redisKey = REDIS_KEY_PACK_PREFIX + packId;
+
+                // 1. 覆盖写入Redis
+                redisTemplate.opsForHash().putAll(
+                        redisKey,
+                        JSON.parseObject(JSON.toJSONString(pack), Map.class)
+                );
+
                 savePackData(pack);
             }
         }
@@ -287,6 +310,15 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
 
 
         if(container.isNotAllNull()){
+            container.setTime(new Date());
+            // ========== 调整：固定Key覆盖写入，不设过期 ==========
+            // 1. 覆盖写入Redis
+            redisTemplate.opsForHash().putAll(
+                    REDIS_KEY_CONTAINER_LATEST,
+                    JSON.parseObject(JSON.toJSONString(container),
+                    Map.class)
+            );
+
             saveContainerData(container);
         }
 
@@ -312,6 +344,7 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
         }
 
         // 2. 解析BMS_CELLS的电压，生成112个电芯对象
+        Date currentDate = new Date();
         for (Object obj : localDataArray) {
             JSONObject device = (JSONObject) obj;
             if ("BMS_CELLS".equals(device.getString("no"))) {
@@ -336,6 +369,8 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
                     battery.setTemperature(temp);
                     battery.setCurrent(totalCurrent); // 所有电芯共用BMS的总电流
 
+                    battery.setTime(currentDate);
+
                     batteryList.add(battery);
                 }
                 break; // 处理完BMS_CELLS后退出循环
@@ -344,71 +379,17 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
 
         for(Battery battery : batteryList){
             if(battery.isNotAllNull()){
+                // 固定Key：前缀 + batteryId（如mqtt:battery:latest:battery-1-1）
+                String redisKey = REDIS_KEY_BATTERY_PREFIX + battery.getBatteryId();
+
+                // 1. 覆盖写入Redis
+                redisTemplate.opsForHash().putAll(redisKey, JSON.parseObject(JSON.toJSONString(battery), Map.class));
+
                 saveBatteryData(battery);
             }
         }
 
     }
-
-    /*private void parseBatOverData() {
-        BatteryOverall batteryOverall = new BatteryOverall();
-
-        for (Object obj : dataArray) {
-            JSONObject device = (JSONObject) obj;
-            JSONObject tags = device.getJSONObject("tags");
-            if ("BMS".equals(device.getString("no"))) {
-
-                //int clusCeVol001 = tags.getIntValue("ClusCeVol001");
-                batteryOverall.setTotalcurrent(tags.getDouble("RackCurrent"));
-                batteryOverall.setTotalvoltage(tags.getDouble("RackVoltage"));
-                batteryOverall.setMaxbatteryvoltage(tags.getDouble("RackMaxVoltage"));
-                //根据CellId设置PackNumber和Dot
-                //batteryOverall.setMaxvoltagebatterydot(tags.getDouble("RackMaxVolCellId"));
-                //batteryOverall.setMaxvoltagebatterypacknumber(tags.getString("RackMaxVolCellId"));
-
-                batteryOverall.setMinbatteryvoltage(tags.getDouble("RackMinVoltage"));
-                //batteryOverall.setMinvoltagebatterypacknumber(tags.getDouble("RackMinVolCellId"));
-                //batteryOverall.setMinvoltagebatterydot(tags.getDouble("RackMinVolCellId"));
-                batteryOverall.setMaxbatterytemperature(tags.getDouble("RackMaxTemp"));
-                //batteryOverall.setMaxbatterytemppackpumber(tags.getDouble("x"));
-                //batteryOverall.setMaxbatterytempbatterydot(tags.getDouble("RackMaxTempCellId"));
-                batteryOverall.setMinbatterytemperature(tags.getDouble("RackMinTemp"));
-                //batteryOverall.setMintempbatterypacknumber();
-                //batteryOverall.setMintempbatterypointnumber(tags.getDouble("RackMinTempCellId"));
-                batteryOverall.setCumulativecharge(tags.getDouble("AccuCharge"));
-                batteryOverall.setCumulativedischarge(tags.getDouble("AccuDischarge"));
-                batteryOverall.setDischargecapacity(tags.getDouble("AvailDischarge"));
-                batteryOverall.setDischargequantitytoday(tags.getDouble("SingleAccuDischarge"));
-                batteryOverall.setChargetoday(tags.getDouble("SingleAccuCharge"));
-                batteryOverall.setCurrentstatus(tags.getInteger("RackRunState"));
-
-
-
-            }
-
-            if ("EMS".equals(device.getString("no"))) {
-                batteryOverall.setRealtimecpofbatterystack(tags.getDouble("chargeStartPower"));
-                batteryOverall.setRealtimedcpofbatterystack(tags.getDouble("dischargeThreshold"));
-
-            }
-        }
-
-*//*        batteryOverall.setMaxvoltagebatterypacknumber("pack1");
-        batteryOverall.setMaxvoltagebatterydot("battery-1-3");
-        batteryOverall.setMinvoltagebatterypacknumber("pack2");
-        batteryOverall.setMinvoltagebatterydot("battery-2-4");
-        batteryOverall.setMaxbatterytemppackpumber("pack3");
-        batteryOverall.setMaxbatterytempbatterydot("battery-3-5");
-        batteryOverall.setMintempbatterypacknumber("pack4");
-        batteryOverall.setMintempbatterypointnumber("battery-4-6");*//*
-
-        if(batteryOverall.isNotAllNull()){
-            saveBatOverData(batteryOverall);
-        }
-
-    }*/
-
-
 
     private void parseBatOverData() {
         // 局部变量拷贝共享数据，避免多线程并发修改问题
@@ -492,6 +473,15 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
 
         // 保存数据（非空校验）
         if (batteryOverall.isNotAllNull()) {
+            batteryOverall.setTime(new Date());
+            // ========== 调整：固定Key覆盖写入，不设过期 ==========
+            // 1. 覆盖写入Redis（Hash结构）
+            Map tempMap = JSON.parseObject(JSON.toJSONString(batteryOverall), Map.class);
+            redisTemplate.opsForHash().putAll(
+                    REDIS_KEY_BATTERY_OVERALL_LATEST,
+                    tempMap
+            );
+
             saveBatOverData(batteryOverall);
         }
     }
