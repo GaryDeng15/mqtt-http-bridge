@@ -422,7 +422,60 @@ public class ImplMqttDataSaveService implements MqttDataSaveService {
                 batteryOverall.setDischargecapacity(tags.getDouble("AvailDischarge"));
                 batteryOverall.setDischargequantitytoday(tags.getDouble("SingleAccuDischarge"));
                 batteryOverall.setChargetoday(tags.getDouble("SingleAccuCharge"));
-                batteryOverall.setCurrentstatus(tags.getInteger("RackRunState"));
+                // EMS原生数据：       0:初始状态;1:充电;2:放电;3:就绪;4:簇维护;5:禁充;6:禁放;7:充放禁止;8:故障;9:故障恢复;10:测试模式;
+                // 接口文档：          0充电  1放电  2维护  3就绪  4禁充
+                Integer rackRunState = tags.getInteger("RackRunState");
+                switch (rackRunState){
+                    case 0:
+                        // 0:初始状态 -> 3就绪
+                        batteryOverall.setCurrentstatus(3);
+                        break;
+                    case 1:
+                        // 1:充电 -> 0充电
+                        batteryOverall.setCurrentstatus(0);
+                        break;
+                    case 2:
+                        // 2:放电 -> 1放电
+                        batteryOverall.setCurrentstatus(1);
+                        break;
+                    case 3:
+                        // 3:就绪 -> 3就绪
+                        batteryOverall.setCurrentstatus(3);
+                        break;
+                    case 4:
+                        // 4:簇维护 -> 2维护
+                        batteryOverall.setCurrentstatus(2);
+                        break;
+                    case 5:
+                        // 5:禁充 -> 4禁充
+                        batteryOverall.setCurrentstatus(4);
+                        break;
+                    case 6:
+                        // 6:禁放 -> 4禁充
+                        batteryOverall.setCurrentstatus(4);
+                        break;
+                    case 7:
+                        // 7:充放禁止 -> 4禁充
+                        batteryOverall.setCurrentstatus(4);
+                        break;
+                    case 8:
+                        // 8:故障 -> 4禁充
+                        batteryOverall.setCurrentstatus(4);
+                        break;
+                    case 9:
+                        // 9:故障恢复 -> 3就绪
+                        batteryOverall.setCurrentstatus(3);
+                        break;
+                    case 10:
+                        // 10:测试模式 -> 2维护
+                        batteryOverall.setCurrentstatus(2);
+                        break;
+                    default:
+                        batteryOverall.setCurrentstatus(3);
+
+                }
+
+
             }
 
             // 解析EMS设备的CPO数据
